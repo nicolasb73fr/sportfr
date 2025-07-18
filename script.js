@@ -1040,8 +1040,18 @@ let cardElement;
 const STRIPE_PUBLISHABLE_KEY = 'pk_live_51IktQRJrCx6Ol33xzuFjnB47tR7R5CuObx3KiEbtqXj4qn216ozrqRUVfZdff9nUKGzG0PndoGLUf5YeJaqroRVT00povTjuyY';
 
 function initializeStripe() {
+    console.log('🔄 Initialisation de Stripe...');
+    
     try {
+        // Vérifier si Stripe est disponible
+        if (typeof Stripe === 'undefined') {
+            console.error('❌ Stripe.js n\'est pas chargé');
+            setupMockCardElement();
+            return;
+        }
+        
         // Initialiser Stripe avec la clé de production
+        console.log('🔑 Utilisation de la clé Stripe:', STRIPE_PUBLISHABLE_KEY.substring(0, 20) + '...');
         stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
         elements = stripe.elements();
         
@@ -1052,11 +1062,14 @@ function initializeStripe() {
         const paymentForm = document.getElementById('payment-form');
         if (paymentForm) {
             paymentForm.addEventListener('submit', handlePaymentSubmit);
+            console.log('✅ Formulaire de paiement configuré');
+        } else {
+            console.warn('⚠️ Formulaire de paiement non trouvé');
         }
         
-        console.log('Stripe initialisé avec succès en mode production');
+        console.log('✅ Stripe initialisé avec succès en mode production');
     } catch (error) {
-        console.error('Erreur lors de l\'initialisation de Stripe:', error);
+        console.error('❌ Erreur lors de l\'initialisation de Stripe:', error);
         // Fallback vers le mode simulation en cas d'erreur
         setupMockCardElement();
     }
@@ -1116,70 +1129,185 @@ function setupMockCardElement() {
 
 async function handlePaymentSubmit(event) {
     event.preventDefault();
+    console.log('💳 Début du processus de paiement...');
     
+    // Vérifications préliminaires
     if (!stripe || !cardElement) {
-        console.error('Stripe non initialisé');
+        console.error('❌ Stripe non initialisé - stripe:', !!stripe, 'cardElement:', !!cardElement);
+        alert('Erreur: Le système de paiement n\'est pas correctement initialisé. Veuillez recharger la page.');
         return;
     }
+    
+    if (!currentUser) {
+        console.error('❌ Utilisateur non connecté');
+        alert('Erreur: Vous devez être connecté pour effectuer un paiement.');
+        return;
+    }
+    
+    console.log('✅ Vérifications préliminaires réussies');
     
     const submitButton = document.getElementById('submit-payment');
     const loadingDiv = document.getElementById('payment-loading');
     const formDiv = document.querySelector('.payment-form');
     const errorDiv = document.getElementById('card-errors');
     
+    // Vérifier que tous les éléments DOM sont présents
+    if (!submitButton || !loadingDiv || !formDiv || !errorDiv) {
+        console.error('❌ Éléments DOM manquants:', {
+            submitButton: !!submitButton,
+            loadingDiv: !!loadingDiv,
+            formDiv: !!formDiv,
+            errorDiv: !!errorDiv
+        });
+        alert('Erreur: Interface de paiement incomplète. Veuillez recharger la page.');
+        return;
+    }
+    
     // Désactiver le bouton et afficher le loading
+    console.log('🔄 Désactivation du bouton et affichage du loading...');
     submitButton.disabled = true;
     submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
     
     // Afficher le loading
-    if (formDiv) formDiv.classList.add('hidden');
-    if (loadingDiv) loadingDiv.classList.remove('hidden');
+    formDiv.classList.add('hidden');
+    loadingDiv.classList.remove('hidden');
     
     try {
+        console.log('🔑 Création du token de paiement...');
+        
         // Créer le token de paiement
         const { token, error } = await stripe.createToken(cardElement);
         
         if (error) {
             // Afficher l'erreur
-            console.error('Erreur Stripe:', error);
-            if (errorDiv) errorDiv.textContent = error.message;
+            console.error('❌ Erreur lors de la création du token:', error);
+            console.error('Type d\'erreur:', error.type);
+            console.error('Code d\'erreur:', error.code);
+            console.error('Message:', error.message);
+            
+            // Afficher un message d'erreur plus détaillé
+            let userMessage = error.message;
+            if (error.type === 'card_error') {
+                switch (error.code) {
+                    case 'card_declined':
+                        userMessage = 'Votre carte a été refusée. Veuillez vérifier vos informations ou utiliser une autre carte.';
+                        break;
+                    case 'expired_card':
+                        userMessage = 'Votre carte a expiré. Veuillez utiliser une carte valide.';
+                        break;
+                    case 'incorrect_cvc':
+                        userMessage = 'Le code CVC est incorrect. Veuillez vérifier le code à 3 chiffres au dos de votre carte.';
+                        break;
+                    case 'processing_error':
+                        userMessage = 'Une erreur s\'est produite lors du traitement. Veuillez réessayer.';
+                        break;
+                    default:
+                        userMessage = `Erreur de carte: ${error.message}`;
+                }
+            }
+            
+            errorDiv.textContent = userMessage;
             
             // Réactiver le formulaire
-            if (formDiv) formDiv.classList.remove('hidden');
-            if (loadingDiv) loadingDiv.classList.add('hidden');
+            formDiv.classList.remove('hidden');
+            loadingDiv.classList.add('hidden');
             submitButton.disabled = false;
             submitButton.innerHTML = '<i class="fas fa-credit-card"></i> Confirmer le paiement';
-        } else {
+            
+        } else if (token) {
+            console.log('✅ Token créé avec succès:', token.id);
+            console.log('📋 Détails du token:', {
+                id: token.id,
+                type: token.type,
+                card: token.card ? {
+                    brand: token.card.brand,
+                    last4: token.card.last4,
+                    exp_month: token.card.exp_month,
+                    exp_year: token.card.exp_year
+                } : 'Non disponible'
+            });
+            
             // Traiter le paiement avec le token
             await processPayment(token);
+            
+        } else {
+            console.error('❌ Ni token ni erreur reçus de Stripe');
+            throw new Error('Réponse inattendue de Stripe');
         }
+        
     } catch (error) {
-        console.error('Erreur lors du traitement du paiement:', error);
-        if (errorDiv) errorDiv.textContent = 'Une erreur est survenue lors du traitement du paiement.';
+        console.error('❌ Erreur critique lors du traitement du paiement:', error);
+        console.error('Stack trace:', error.stack);
+        
+        let errorMessage = 'Une erreur inattendue est survenue lors du traitement du paiement.';
+        
+        if (error.message.includes('network')) {
+            errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet et réessayez.';
+        } else if (error.message.includes('timeout')) {
+            errorMessage = 'Le traitement a pris trop de temps. Veuillez réessayer.';
+        }
+        
+        errorDiv.textContent = errorMessage;
         
         // Réactiver le formulaire
-        if (formDiv) formDiv.classList.remove('hidden');
-        if (loadingDiv) loadingDiv.classList.add('hidden');
+        formDiv.classList.remove('hidden');
+        loadingDiv.classList.add('hidden');
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="fas fa-credit-card"></i> Confirmer le paiement';
+        
+        // Afficher une alerte pour les erreurs critiques
+        alert('Erreur de paiement: ' + errorMessage + '\n\nSi le problème persiste, veuillez contacter le support.');
     }
 }
 
 async function processPayment(token) {
+    console.log('🔄 Début du traitement du paiement...');
+    
     try {
         // Ici, vous devriez normalement envoyer le token à votre serveur
         // Pour GitHub Pages, nous simulons le succès après validation du token
         
-        console.log('Token de paiement reçu:', token.id);
+        console.log('📨 Token de paiement reçu:', token.id);
+        console.log('💳 Informations de la carte:', {
+            brand: token.card?.brand || 'Inconnue',
+            last4: token.card?.last4 || 'XXXX',
+            exp_month: token.card?.exp_month || 'XX',
+            exp_year: token.card?.exp_year || 'XXXX'
+        });
+        
+        // Vérifier que l'utilisateur est toujours connecté
+        if (!currentUser) {
+            console.error('❌ Utilisateur déconnecté pendant le traitement');
+            throw new Error('Session utilisateur expirée');
+        }
+        
+        console.log('👤 Utilisateur:', currentUser.email);
+        console.log('⏳ Simulation du traitement serveur (2 secondes)...');
         
         // Simuler un délai de traitement serveur
         await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Simuler une vérification du token côté serveur
+        if (!token.id || token.id.length < 10) {
+            console.error('❌ Token invalide:', token.id);
+            throw new Error('Token de paiement invalide');
+        }
+        
+        console.log('✅ Traitement serveur simulé avec succès');
+        console.log('🎉 Paiement accepté - Activation du compte Premium...');
         
         // Simuler le succès du paiement
         handleSuccessfulPayment(token);
         
     } catch (error) {
-        console.error('Erreur lors du traitement du paiement:', error);
+        console.error('❌ Erreur lors du traitement du paiement:', error);
+        console.error('📋 Détails de l\'erreur:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
+        
+        // Relancer l'erreur pour qu'elle soit gérée par handlePaymentSubmit
         throw error;
     }
 }
