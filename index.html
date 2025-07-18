@@ -3,605 +3,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitTracker - Votre Coach Musculation</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Gestionnaire Proxmox</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Google OAuth -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    
-    <!-- Apple Sign In -->
-    <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
-    
-    <!-- Stripe -->
-    <script src="https://js.stripe.com/v3/"></script>
+    <link href="style.css" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <div class="nav-container">
-                <h1 class="logo"><i class="fas fa-dumbbell"></i> FitTracker</h1>
-                <ul class="nav-menu">
-                    <li><a href="#accueil" class="nav-link">Accueil</a></li>
-                    <li><a href="#exercices" class="nav-link">Exercices</a></li>
-                    <li><a href="#planning" class="nav-link">Mon Planning</a></li>
-                    <li><a href="#premium" class="nav-link">Premium</a></li>
-                    <li><a href="#minuteur" class="nav-link">Minuteur</a></li>
-                    <li><a href="#calculateur" class="nav-link">Calculateur</a></li>
-                    <li><a href="#" class="nav-link" id="login-link">Connexion</a></li>
-                    <li><a href="#" class="nav-link" id="register-link">Inscription</a></li>
-                    <li><a href="#" class="nav-link hidden" id="logout-link">Déconnexion</a></li>
-                </ul>
-                <div class="hamburger">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-server"></i> Proxmox Manager</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text" id="connection-status">
+                    <i class="fas fa-circle text-danger"></i> Déconnecté
+                </span>
             </div>
-        </nav>
-    </header>
-
-    <main>
-        <!-- Section Accueil -->
-        <section id="accueil" class="hero">
-            <div class="hero-content">
-                <h2>Votre Coach Musculation Personnel</h2>
-                <p>Découvrez des exercices, gérez vos temps de repos et suivez votre progression</p>
-                <button class="cta-button" onclick="scrollToSection('exercices')">
-                    <i class="fas fa-play"></i> Commencer l'Entraînement
-                </button>
-            </div>
-        </section>
-
-        <!-- Section Exercices -->
-        <section id="exercices" class="exercises-section">
-            <div class="container">
-                <h2 class="section-title">Exercices par Groupe Musculaire</h2>
-                <div class="muscle-groups">
-                    <div class="muscle-group" data-group="pectoraux">
-                        <div class="muscle-card">
-                            <i class="fas fa-heart"></i>
-                            <h3>Pectoraux</h3>
-                            <p>Développez votre torse</p>
-                        </div>
-                    </div>
-                    <div class="muscle-group" data-group="dos">
-                        <div class="muscle-card">
-                            <i class="fas fa-shield-alt"></i>
-                            <h3>Dos</h3>
-                            <p>Renforcez votre dos</p>
-                        </div>
-                    </div>
-                    <div class="muscle-group" data-group="jambes">
-                        <div class="muscle-card">
-                            <i class="fas fa-running"></i>
-                            <h3>Jambes</h3>
-                            <p>Puissance et stabilité</p>
-                        </div>
-                    </div>
-                    <div class="muscle-group" data-group="bras">
-                        <div class="muscle-card">
-                            <i class="fas fa-fist-raised"></i>
-                            <h3>Bras</h3>
-                            <p>Biceps et triceps</p>
-                        </div>
-                    </div>
-                    <div class="muscle-group" data-group="epaules">
-                        <div class="muscle-card">
-                            <i class="fas fa-expand-arrows-alt"></i>
-                            <h3>Épaules</h3>
-                            <p>Largeur et définition</p>
-                        </div>
-                    </div>
-                    <div class="muscle-group" data-group="abdos">
-                        <div class="muscle-card">
-                            <i class="fas fa-circle"></i>
-                            <h3>Abdominaux</h3>
-                            <p>Core et gainage</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Liste des exercices (cachée par défaut) -->
-                <div id="exercise-list" class="exercise-list hidden">
-                    <div class="exercise-header">
-                        <h3 id="selected-muscle">Exercices</h3>
-                        <button class="close-btn" onclick="closeExerciseList()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div id="exercises-container" class="exercises-container">
-                        <!-- Les exercices seront ajoutés dynamiquement -->
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section Minuteur -->
-        <section id="minuteur" class="timer-section">
-            <div class="container">
-                <h2 class="section-title">Minuteur de Repos</h2>
-                <div class="timer-container">
-                    <div class="timer-display">
-                        <div class="time-circle">
-                            <span id="timer-display">00:00</span>
-                        </div>
-                    </div>
-                    <div class="timer-controls">
-                        <div class="preset-times">
-                            <button class="preset-btn" data-time="30">30s</button>
-                            <button class="preset-btn" data-time="60">1min</button>
-                            <button class="preset-btn" data-time="90">1min 30s</button>
-                            <button class="preset-btn" data-time="120">2min</button>
-                            <button class="preset-btn" data-time="180">3min</button>
-                        </div>
-                        <div class="custom-time">
-                            <input type="number" id="custom-minutes" placeholder="Min" min="0" max="59">
-                            <span>:</span>
-                            <input type="number" id="custom-seconds" placeholder="Sec" min="0" max="59">
-                            <button id="set-custom-time">Définir</button>
-                        </div>
-                        <div class="timer-buttons">
-                            <button id="start-timer" class="timer-btn start">
-                                <i class="fas fa-play"></i> Démarrer
-                            </button>
-                            <button id="pause-timer" class="timer-btn pause">
-                                <i class="fas fa-pause"></i> Pause
-                            </button>
-                            <button id="reset-timer" class="timer-btn reset">
-                                <i class="fas fa-stop"></i> Reset
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section Planning Personnel -->
-        <section id="planning" class="planning-section">
-            <div class="container">
-                <h2 class="section-title">Mon Planning d'Entraînement</h2>
-                <div id="planning-content" class="planning-content">
-                    <div class="auth-required">
-                        <i class="fas fa-lock"></i>
-                        <h3>Connexion Requise</h3>
-                        <p>Connectez-vous pour accéder à votre planning personnalisé</p>
-                        <button onclick="showAuthModal()" class="cta-button">Se Connecter</button>
-                    </div>
-                </div>
-                
-                <!-- Planning utilisateur connecté (caché par défaut) -->
-                <div id="user-planning" class="user-planning hidden">
-                    <div class="planning-header">
-                        <h3>Bienvenue, <span id="username-display"></span> !</h3>
-                        <div class="planning-controls">
-                            <button onclick="createWorkout()" class="btn-primary">
-                                <i class="fas fa-plus"></i> Nouveau Programme
-                            </button>
-                            <button onclick="showWorkoutHistory()" class="btn-secondary">
-                                <i class="fas fa-history"></i> Historique
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="workout-programs">
-                        <h4>Mes Programmes d'Entraînement</h4>
-                        <div id="programs-list" class="programs-list">
-                            <!-- Les programmes seront ajoutés dynamiquement -->
-                        </div>
-                    </div>
-                    
-                    <div class="workout-calendar">
-                        <h4>Planning de la Semaine</h4>
-                        <div class="calendar-grid">
-                            <div class="day-card" data-day="lundi">
-                                <h5>Lundi</h5>
-                                <div class="day-workout" id="workout-lundi">
-                                    <p>Repos</p>
-                                </div>
-                            </div>
-                            <div class="day-card" data-day="mardi">
-                                <h5>Mardi</h5>
-                                <div class="day-workout" id="workout-mardi">
-                                    <p>Repos</p>
-                                </div>
-                            </div>
-                            <div class="day-card" data-day="mercredi">
-                                <h5>Mercredi</h5>
-                                <div class="day-workout" id="workout-mercredi">
-                                    <p>Repos</p>
-                                </div>
-                            </div>
-                            <div class="day-card" data-day="jeudi">
-                                <h5>Jeudi</h5>
-                                <div class="day-workout" id="workout-jeudi">
-                                    <p>Repos</p>
-                                </div>
-                            </div>
-                            <div class="day-card" data-day="vendredi">
-                                <h5>Vendredi</h5>
-                                <div class="day-workout" id="workout-vendredi">
-                                    <p>Repos</p>
-                                </div>
-                            </div>
-                            <div class="day-card" data-day="samedi">
-                                <h5>Samedi</h5>
-                                <div class="day-workout" id="workout-samedi">
-                                    <p>Repos</p>
-                                </div>
-                            </div>
-                            <div class="day-card" data-day="dimanche">
-                                <h5>Dimanche</h5>
-                                <div class="day-workout" id="workout-dimanche">
-                                    <p>Repos</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section Premium -->
-        <section id="premium" class="premium-section">
-            <div class="container">
-                <h2 class="section-title">Passez au Premium</h2>
-                <p class="premium-subtitle">Débloquez toutes les fonctionnalités avancées pour maximiser vos résultats</p>
-                
-                <div class="pricing-cards">
-                    <!-- Plan Gratuit -->
-                    <div class="pricing-card free">
-                        <div class="plan-header">
-                            <h3>Gratuit</h3>
-                            <div class="price">
-                                <span class="amount">0€</span>
-                                <span class="period">/mois</span>
-                            </div>
-                        </div>
-                        <div class="plan-features">
-                            <ul>
-                                <li><i class="fas fa-check"></i> Exercices de base</li>
-                                <li><i class="fas fa-check"></i> Minuteur simple</li>
-                                <li><i class="fas fa-check"></i> 3 programmes max</li>
-                                <li><i class="fas fa-times"></i> Vidéos explicatives</li>
-                                <li><i class="fas fa-times"></i> Suivi de progression</li>
-                                <li><i class="fas fa-times"></i> Programmes personnalisés</li>
-                                <li><i class="fas fa-times"></i> Support prioritaire</li>
-                            </ul>
-                        </div>
-                        <button class="plan-button current" disabled>Plan Actuel</button>
-                    </div>
-
-                    <!-- Plan Premium Mensuel -->
-                    <div class="pricing-card premium popular">
-                        <div class="popular-badge">Le Plus Populaire</div>
-                        <div class="plan-header">
-                            <h3>Premium</h3>
-                            <div class="price">
-                                <span class="amount">9,99€</span>
-                                <span class="period">/mois</span>
-                            </div>
-                        </div>
-                        <div class="plan-features">
-                            <ul>
-                                <li><i class="fas fa-check"></i> Tous les exercices</li>
-                                <li><i class="fas fa-check"></i> Minuteur avancé</li>
-                                <li><i class="fas fa-check"></i> Programmes illimités</li>
-                                <li><i class="fas fa-check"></i> Vidéos HD explicatives</li>
-                                <li><i class="fas fa-check"></i> Suivi de progression</li>
-                                <li><i class="fas fa-check"></i> IA personnalisée</li>
-                                <li><i class="fas fa-check"></i> Support prioritaire</li>
-                            </ul>
-                        </div>
-                        <button class="plan-button premium-btn" onclick="subscribeToPlan('monthly')">
-                            <i class="fas fa-crown"></i> Choisir Premium
-                        </button>
-                    </div>
-
-                    <!-- Plan Premium Annuel -->
-                    <div class="pricing-card premium-yearly">
-                        <div class="savings-badge">Économisez 20%</div>
-                        <div class="plan-header">
-                            <h3>Premium Annuel</h3>
-                            <div class="price">
-                                <span class="amount">99,99€</span>
-                                <span class="period">/an</span>
-                            </div>
-                            <div class="price-note">Soit 8,33€/mois</div>
-                        </div>
-                        <div class="plan-features">
-                            <ul>
-                                <li><i class="fas fa-check"></i> Tous les exercices</li>
-                                <li><i class="fas fa-check"></i> Minuteur avancé</li>
-                                <li><i class="fas fa-check"></i> Programmes illimités</li>
-                                <li><i class="fas fa-check"></i> Vidéos HD explicatives</li>
-                                <li><i class="fas fa-check"></i> Suivi de progression</li>
-                                <li><i class="fas fa-check"></i> IA personnalisée</li>
-                                <li><i class="fas fa-check"></i> Support prioritaire</li>
-                                <li><i class="fas fa-check"></i> Accès anticipé aux nouveautés</li>
-                            </ul>
-                        </div>
-                        <button class="plan-button premium-btn" onclick="subscribeToPlan('yearly')">
-                            <i class="fas fa-star"></i> Choisir Annuel
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Garantie et sécurité -->
-                <div class="premium-guarantees">
-                    <div class="guarantee-item">
-                        <i class="fas fa-shield-alt"></i>
-                        <h4>Paiement Sécurisé</h4>
-                        <p>Vos données sont protégées par Stripe</p>
-                    </div>
-                    <div class="guarantee-item">
-                        <i class="fas fa-undo"></i>
-                        <h4>Annulation Facile</h4>
-                        <p>Résiliez à tout moment en un clic</p>
-                    </div>
-                    <div class="guarantee-item">
-                        <i class="fas fa-clock"></i>
-                        <h4>Essai 7 Jours</h4>
-                        <p>Satisfait ou remboursé</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section Calculateur -->
-        <section id="calculateur" class="calculator-section">
-            <div class="container">
-                <h2 class="section-title">Calculateur de Charges</h2>
-                <div class="calculator-container">
-                    <div class="calc-card">
-                        <h3>Calculateur 1RM</h3>
-                        <p>Estimez votre charge maximale</p>
-                        <div class="calc-inputs">
-                            <input type="number" id="weight" placeholder="Poids (kg)">
-                            <input type="number" id="reps" placeholder="Répétitions">
-                            <button onclick="calculate1RM()">Calculer</button>
-                        </div>
-                        <div id="rm-result" class="calc-result"></div>
-                    </div>
-                    <div class="calc-card">
-                        <h3>Progression Recommandée</h3>
-                        <p>Augmentation progressive des charges</p>
-                        <div class="calc-inputs">
-                            <input type="number" id="current-weight" placeholder="Poids actuel (kg)">
-                            <button onclick="calculateProgression()">Calculer</button>
-                        </div>
-                        <div id="progression-result" class="calc-result"></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer>
-        <div class="container">
-            <p>&copy; 2024 FitTracker - Votre partenaire musculation</p>
         </div>
-    </footer>
+    </nav>
 
-    <!-- Modal de Connexion/Inscription -->
-    <div id="auth-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">Connexion</h3>
-                <button class="close-modal" onclick="closeAuthModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+    <div class="container-fluid mt-4">
+        <!-- Configuration Proxmox -->
+        <div class="row mb-4" id="config-section">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> Configuration Proxmox</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="proxmox-config">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="proxmox-host" class="form-label">Serveur Proxmox</label>
+                                    <input type="text" class="form-control" id="proxmox-host" placeholder="192.168.1.100">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="proxmox-port" class="form-label">Port</label>
+                                    <input type="number" class="form-control" id="proxmox-port" value="8006">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="proxmox-username" class="form-label">Utilisateur</label>
+                                    <input type="text" class="form-control" id="proxmox-username" placeholder="root@pam">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="proxmox-password" class="form-label">Mot de passe</label>
+                                    <input type="password" class="form-control" id="proxmox-password">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-plug"></i> Connecter
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body">
-                <!-- Formulaire de Connexion -->
-                <form id="login-form" class="auth-form">
-                    <div class="form-group">
-                        <label for="login-email">Email :</label>
-                        <input type="email" id="login-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="login-password">Mot de passe :</label>
-                        <input type="password" id="login-password" required>
-                    </div>
-                    <button type="submit" class="btn-primary full-width">Se Connecter</button>
-                    
-                    <!-- Séparateur -->
-                    <div class="auth-separator">
-                        <span>ou</span>
-                    </div>
-                    
-                    <!-- Bouton Google -->
-                    <div id="google-signin-btn" class="google-signin-btn">
-                        <i class="fab fa-google"></i>
-                        Continuer avec Google
-                    </div>
-                    
-                    <!-- Bouton Apple -->
-                    <div id="apple-signin-btn" class="apple-signin-btn">
-                        <i class="fab fa-apple"></i>
-                        Continuer avec Apple
-                    </div>
-                </form>
+        </div>
 
-                <!-- Formulaire d'Inscription -->
-                <form id="register-form" class="auth-form hidden">
-                    <div class="form-group">
-                        <label for="register-name">Nom :</label>
-                        <input type="text" id="register-name" required>
+        <!-- Dashboard -->
+        <div class="row mb-4" id="dashboard-section" style="display: none;">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 id="total-vms">0</h4>
+                                <p>Total VMs</p>
+                            </div>
+                            <i class="fas fa-desktop fa-2x"></i>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="register-email">Email :</label>
-                        <input type="email" id="register-email" required>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 id="running-vms">0</h4>
+                                <p>VMs Actives</p>
+                            </div>
+                            <i class="fas fa-play fa-2x"></i>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="register-password">Mot de passe :</label>
-                        <input type="password" id="register-password" required>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 id="lxc-count">0</h4>
+                                <p>Conteneurs LXC</p>
+                            </div>
+                            <i class="fas fa-cube fa-2x"></i>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="register-confirm">Confirmer le mot de passe :</label>
-                        <input type="password" id="register-confirm" required>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 id="kvm-count">0</h4>
+                                <p>VMs KVM</p>
+                            </div>
+                            <i class="fas fa-server fa-2x"></i>
+                        </div>
                     </div>
-                    <button type="submit" class="btn-primary full-width">S'Inscrire</button>
-                </form>
+                </div>
+            </div>
+        </div>
 
-                <div class="auth-switch">
-                    <p id="auth-switch-text">Pas encore de compte ?</p>
-                    <button id="auth-switch-btn" onclick="toggleAuthMode()">S'inscrire</button>
+        <!-- Actions rapides -->
+        <div class="row mb-4" id="actions-section" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-plus"></i> Actions rapides</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success me-2" onclick="showCreateVMModal('lxc')">
+                            <i class="fas fa-plus"></i> Créer LXC
+                        </button>
+                        <button class="btn btn-primary me-2" onclick="showCreateVMModal('kvm')">
+                            <i class="fas fa-plus"></i> Créer VM KVM
+                        </button>
+                        <button class="btn btn-info me-2" onclick="refreshVMList()">
+                            <i class="fas fa-sync"></i> Actualiser
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des VMs -->
+        <div class="row" id="vm-list-section" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list"></i> Machines Virtuelles</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Statut</th>
+                                        <th>CPU</th>
+                                        <th>RAM</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vm-table-body">
+                                    <!-- Les VMs seront ajoutées ici dynamiquement -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Création de Programme -->
-    <div id="workout-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Créer un Programme d'Entraînement</h3>
-                <button class="close-modal" onclick="closeWorkoutModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="workout-form">
-                    <div class="form-group">
-                        <label for="program-name">Nom du Programme :</label>
-                        <input type="text" id="program-name" placeholder="Ex: Push/Pull/Legs" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="program-day">Jour de la semaine :</label>
-                        <select id="program-day" required>
-                            <option value="">Choisir un jour</option>
-                            <option value="lundi">Lundi</option>
-                            <option value="mardi">Mardi</option>
-                            <option value="mercredi">Mercredi</option>
-                            <option value="jeudi">Jeudi</option>
-                            <option value="vendredi">Vendredi</option>
-                            <option value="samedi">Samedi</option>
-                            <option value="dimanche">Dimanche</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Exercices sélectionnés :</label>
-                        <div id="selected-exercises" class="selected-exercises">
-                            <p>Aucun exercice sélectionné</p>
-                        </div>
-                        <button type="button" onclick="showExerciseSelector()" class="btn-secondary">
-                            <i class="fas fa-plus"></i> Ajouter des Exercices
-                        </button>
-                    </div>
-                    <button type="submit" class="btn-primary full-width">Créer le Programme</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Sélection d'Exercices -->
-    <div id="exercise-selector-modal" class="modal hidden">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h3>Sélectionner des Exercices</h3>
-                <button class="close-modal" onclick="closeExerciseSelectorModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="exercise-selector">
-                    <div class="muscle-selector">
-                        <button class="muscle-btn" data-muscle="pectoraux">Pectoraux</button>
-                        <button class="muscle-btn" data-muscle="dos">Dos</button>
-                        <button class="muscle-btn" data-muscle="jambes">Jambes</button>
-                        <button class="muscle-btn" data-muscle="bras">Bras</button>
-                        <button class="muscle-btn" data-muscle="epaules">Épaules</button>
-                        <button class="muscle-btn" data-muscle="abdos">Abdominaux</button>
-                    </div>
-                    <div id="exercise-options" class="exercise-options">
-                        <p>Sélectionnez un groupe musculaire</p>
-                    </div>
+    <!-- Modal pour créer une VM -->
+    <div class="modal fade" id="createVMModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createVMModalTitle">Créer une nouvelle VM</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <button onclick="confirmExerciseSelection()" class="btn-primary full-width">
-                    Confirmer la Sélection
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Paiement Stripe -->
-    <div id="payment-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="payment-title">Finaliser votre abonnement</h3>
-                <button class="close-modal" onclick="closePaymentModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="payment-summary">
-                    <div class="selected-plan">
-                        <h4 id="selected-plan-name">Plan Premium</h4>
-                        <div class="plan-price">
-                            <span id="selected-plan-price">9,99€</span>
-                            <span id="selected-plan-period">/mois</span>
+                <div class="modal-body">
+                    <form id="create-vm-form">
+                        <input type="hidden" id="vm-type" value="">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="vm-id" class="form-label">ID VM</label>
+                                <input type="number" class="form-control" id="vm-id" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="vm-name" class="form-label">Nom</label>
+                                <input type="text" class="form-control" id="vm-name" required>
+                            </div>
                         </div>
-                    </div>
-                    <div class="payment-benefits">
-                        <h5>Inclus dans votre abonnement :</h5>
-                        <ul>
-                            <li><i class="fas fa-check"></i> Accès à tous les exercices</li>
-                            <li><i class="fas fa-check"></i> Vidéos HD explicatives</li>
-                            <li><i class="fas fa-check"></i> Programmes illimités</li>
-                            <li><i class="fas fa-check"></i> Suivi de progression</li>
-                            <li><i class="fas fa-check"></i> Support prioritaire</li>
-                        </ul>
-                    </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label for="vm-cpu" class="form-label">CPU (cores)</label>
+                                <input type="number" class="form-control" id="vm-cpu" value="1" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="vm-memory" class="form-label">RAM (MB)</label>
+                                <input type="number" class="form-control" id="vm-memory" value="512" min="128">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label for="vm-storage" class="form-label">Stockage (GB)</label>
+                                <input type="number" class="form-control" id="vm-storage" value="8" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="vm-node" class="form-label">Nœud</label>
+                                <select class="form-control" id="vm-node">
+                                    <option value="">Sélectionner un nœud</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3" id="lxc-specific" style="display: none;">
+                            <div class="col-md-12">
+                                <label for="lxc-template" class="form-label">Template LXC</label>
+                                <select class="form-control" id="lxc-template">
+                                    <option value="">Sélectionner un template</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3" id="kvm-specific" style="display: none;">
+                            <div class="col-md-12">
+                                <label for="kvm-iso" class="form-label">ISO</label>
+                                <select class="form-control" id="kvm-iso">
+                                    <option value="">Sélectionner une ISO</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-                
-                <!-- Formulaire de paiement Stripe -->
-                <form id="payment-form" class="payment-form">
-                    <div class="form-group">
-                        <label for="card-element">Informations de carte</label>
-                        <div id="card-element" class="stripe-element">
-                            <!-- Stripe Elements injectera le champ de carte ici -->
-                        </div>
-                        <div id="card-errors" class="payment-errors" role="alert"></div>
-                    </div>
-                    
-                    <div class="payment-total">
-                        <div class="total-line">
-                            <span>Sous-total</span>
-                            <span id="payment-subtotal">9,99€</span>
-                        </div>
-                        <div class="total-line">
-                            <span>TVA (20%)</span>
-                            <span id="payment-tax">2,00€</span>
-                        </div>
-                        <div class="total-line total">
-                            <span><strong>Total</strong></span>
-                            <span id="payment-total-amount"><strong>11,99€</strong></span>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" id="submit-payment" class="btn-primary full-width payment-btn">
-                        <i class="fas fa-lock"></i> Payer maintenant
-                    </button>
-                    
-                    <div class="payment-security">
-                        <div class="security-badges">
-                            <i class="fab fa-cc-visa"></i>
-                            <i class="fab fa-cc-mastercard"></i>
-                            <i class="fab fa-cc-amex"></i>
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <p>Paiement sécurisé par Stripe • Vos données sont protégées</p>
-                    </div>
-                </form>
-                
-                <div class="payment-loading hidden" id="payment-loading">
-                    <div class="loading-spinner"></div>
-                    <p>Traitement du paiement en cours...</p>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="createVM()">Créer</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
