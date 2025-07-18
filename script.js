@@ -1036,24 +1036,69 @@ let stripe;
 let elements;
 let cardElement;
 
+// Clé API Stripe de production
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51IktQRJrCx6Ol33xzuFjnB47tR7R5CuObx3KiEbtqXj4qn216ozrqRUVfZdff9nUKGzG0PndoGLUf5YeJaqroRVT00povTjuyY';
+
 function initializeStripe() {
-    // Mode simulation - pas besoin de vraie clé Stripe pour la démo
-    console.log('Initialisation du système de paiement en mode simulation');
-    
-    // Créer un faux élément de carte pour la démo
-    setupMockCardElement();
-    
-    // Gérer la soumission du formulaire de paiement
-    const paymentForm = document.getElementById('payment-form');
-    if (paymentForm) {
-        paymentForm.addEventListener('submit', handleMockPaymentSubmit);
+    try {
+        // Initialiser Stripe avec la clé de production
+        stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+        elements = stripe.elements();
+        
+        // Créer l'élément de carte
+        setupCardElement();
+        
+        // Gérer la soumission du formulaire de paiement
+        const paymentForm = document.getElementById('payment-form');
+        if (paymentForm) {
+            paymentForm.addEventListener('submit', handlePaymentSubmit);
+        }
+        
+        console.log('Stripe initialisé avec succès en mode production');
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation de Stripe:', error);
+        // Fallback vers le mode simulation en cas d'erreur
+        setupMockCardElement();
     }
+}
+
+function setupCardElement() {
+    const cardElementContainer = document.getElementById('card-element');
+    if (!cardElementContainer || !elements) return;
+    
+    // Style pour l'élément de carte
+    const style = {
+        base: {
+            fontSize: '16px',
+            color: '#424770',
+            '::placeholder': {
+                color: '#aab7c4',
+            },
+        },
+        invalid: {
+            color: '#9e2146',
+        },
+    };
+    
+    // Créer l'élément de carte
+    cardElement = elements.create('card', { style: style });
+    cardElement.mount('#card-element');
+    
+    // Gérer les erreurs en temps réel
+    cardElement.on('change', ({ error }) => {
+        const displayError = document.getElementById('card-errors');
+        if (error) {
+            displayError.textContent = error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    });
 }
 
 function setupMockCardElement() {
     const cardElementContainer = document.getElementById('card-element');
     if (cardElementContainer) {
-        // Créer un faux champ de carte pour la démo
+        // Créer un faux champ de carte pour la démo (fallback)
         cardElementContainer.innerHTML = `
             <div style="padding: 15px; border: 1px solid #ccc; border-radius: 4px; background: white;">
                 <input type="text" placeholder="1234 1234 1234 1234" style="border: none; outline: none; width: 100%; font-size: 16px; color: #424770;" readonly>
@@ -1061,8 +1106,8 @@ function setupMockCardElement() {
                     <input type="text" placeholder="MM/YY" style="border: none; outline: none; width: 60px; font-size: 14px; color: #424770;" readonly>
                     <input type="text" placeholder="CVC" style="border: none; outline: none; width: 50px; font-size: 14px; color: #424770;" readonly>
                 </div>
-                <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                    <i class="fas fa-info-circle"></i> Mode démo - Aucune vraie carte requise
+                <div style="margin-top: 10px; font-size: 12px; color: #ff6b6b;">
+                    <i class="fas fa-exclamation-triangle"></i> Erreur de configuration Stripe - Mode démo activé
                 </div>
             </div>
         `;
@@ -1072,46 +1117,70 @@ function setupMockCardElement() {
 async function handlePaymentSubmit(event) {
     event.preventDefault();
     
+    if (!stripe || !cardElement) {
+        console.error('Stripe non initialisé');
+        return;
+    }
+    
     const submitButton = document.getElementById('submit-payment');
     const loadingDiv = document.getElementById('payment-loading');
     const formDiv = document.querySelector('.payment-form');
+    const errorDiv = document.getElementById('card-errors');
     
     // Désactiver le bouton et afficher le loading
     submitButton.disabled = true;
-    submitButton.textContent = 'Traitement...';
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
+    
+    // Afficher le loading
+    if (formDiv) formDiv.classList.add('hidden');
+    if (loadingDiv) loadingDiv.classList.remove('hidden');
     
     try {
         // Créer le token de paiement
-        const {token, error} = await stripe.createToken(cardElement);
+        const { token, error } = await stripe.createToken(cardElement);
         
         if (error) {
             // Afficher l'erreur
-            const errorElement = document.getElementById('card-errors');
-            errorElement.textContent = error.message;
+            console.error('Erreur Stripe:', error);
+            if (errorDiv) errorDiv.textContent = error.message;
             
-            // Réactiver le bouton
+            // Réactiver le formulaire
+            if (formDiv) formDiv.classList.remove('hidden');
+            if (loadingDiv) loadingDiv.classList.add('hidden');
             submitButton.disabled = false;
-            submitButton.innerHTML = '<i class="fas fa-lock"></i> Payer maintenant';
+            submitButton.innerHTML = '<i class="fas fa-credit-card"></i> Confirmer le paiement';
         } else {
-            // Afficher le loading
-            formDiv.classList.add('hidden');
-            loadingDiv.classList.remove('hidden');
-            
-            // Simuler le traitement du paiement
-            setTimeout(() => {
-                handleSuccessfulPayment(token);
-            }, 3000);
+            // Traiter le paiement avec le token
+            await processPayment(token);
         }
-    } catch (err) {
-        console.error('Erreur de paiement:', err);
+    } catch (error) {
+        console.error('Erreur lors du traitement du paiement:', error);
+        if (errorDiv) errorDiv.textContent = 'Une erreur est survenue lors du traitement du paiement.';
         
-        // Réactiver le bouton
+        // Réactiver le formulaire
+        if (formDiv) formDiv.classList.remove('hidden');
+        if (loadingDiv) loadingDiv.classList.add('hidden');
         submitButton.disabled = false;
-        submitButton.innerHTML = '<i class="fas fa-lock"></i> Payer maintenant';
+        submitButton.innerHTML = '<i class="fas fa-credit-card"></i> Confirmer le paiement';
+    }
+}
+
+async function processPayment(token) {
+    try {
+        // Ici, vous devriez normalement envoyer le token à votre serveur
+        // Pour GitHub Pages, nous simulons le succès après validation du token
         
-        // Afficher l'erreur
-        const errorElement = document.getElementById('card-errors');
-        errorElement.textContent = 'Une erreur est survenue lors du traitement du paiement.';
+        console.log('Token de paiement reçu:', token.id);
+        
+        // Simuler un délai de traitement serveur
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Simuler le succès du paiement
+        handleSuccessfulPayment(token);
+        
+    } catch (error) {
+        console.error('Erreur lors du traitement du paiement:', error);
+        throw error;
     }
 }
 
