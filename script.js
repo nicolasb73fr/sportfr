@@ -1251,11 +1251,7 @@ function updatePaymentTotal(planType) {
 document.addEventListener('DOMContentLoaded', function() {
     // Attendre un peu pour que Stripe soit chargé
     setTimeout(() => {
-        if (typeof Stripe !== 'undefined') {
-            initializeStripe();
-        } else {
-            console.warn('Stripe n\'est pas chargé. Vérifiez que le script Stripe est inclus.');
-        }
+        initializeStripe();
     }, 1000);
 });
 
